@@ -33,10 +33,14 @@ public class Member extends BaseTimeEntity {
     @Column(nullable = false)
     private Role role;
 
-    public static Member create() {
-        return Member.builder().
-                // TODO
-
-                build();
+    public static Member create(String email, String nickname, OAuthProvider provider,
+                                String providerId, Role role) {
+        return Member.builder()
+                .email(email)
+                .nickname(nickname)
+                .provider(provider)
+                .providerId(providerId)
+                .role(role)
+                .build();
     }
 }

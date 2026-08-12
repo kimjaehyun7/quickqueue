@@ -1,5 +1,6 @@
 package com.quickqueue.global.config;
 
+import com.quickqueue.domain.auth.service.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +17,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final CustomOAuth2UserService customOAuth2UserService;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
         return http
@@ -30,6 +33,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .anyRequest().permitAll())
                 .oauth2Login(oauth -> oauth
+                        .userInfoEndpoint(userInfo -> userInfo
+                                .userService(customOAuth2UserService))
                         .defaultSuccessUrl("/test", true))
                 .build();
     }

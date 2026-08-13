@@ -29,11 +29,12 @@ public class RefreshToken extends BaseCreatedTimeEntity {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
-    public static RefreshToken create() {
-        return RefreshToken.builder().
-                // TODO
-
-                        build();
+    public static RefreshToken create(Member member, String token, LocalDateTime expiresAt) {
+        return RefreshToken.builder()
+                .member(member)
+                .token(token)
+                .expiresAt(expiresAt)
+                .build();
     }
 
     public boolean isExpired() {

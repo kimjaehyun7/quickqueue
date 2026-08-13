@@ -16,4 +16,15 @@ public class TestController {
     public String test(Authentication authentication) {
         return authentication.getName();
     }
+
+    @GetMapping("/api/admin/test")
+    public String adminTest(Authentication authentication) {
+        if (authentication == null) {
+            return "authentication = null";
+        }
+        return "name: " + authentication.getName()
+                + "\nprincipal = " + authentication.getPrincipal()
+                + "\nauthenticated = " + authentication.isAuthenticated()
+                + "\nauthorities = " + authentication.getAuthorities();
+    }
 }

@@ -1,5 +1,6 @@
 package com.quickqueue.domain.event.entity;
 
+import com.quickqueue.domain.event.dto.EventRequest;
 import com.quickqueue.domain.member.entity.Member;
 import com.quickqueue.global.common.BaseCreatedTimeEntity;
 import jakarta.persistence.*;
@@ -32,15 +33,17 @@ public class Event extends BaseCreatedTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EventStatus status;
+    @Builder.Default
+    private EventStatus status = EventStatus.OPEN;
 
     private LocalDateTime closedAt;
 
-    public static Event create() {
-        return Event.builder().
-                // TODO
-
-                build();
+    public static Event create(Member member, EventRequest request, String publicId) {
+        return Event.builder()
+                .member(member)
+                .name(request.name())
+                .publicId(publicId)
+                .build();
     }
 
     public void close() {

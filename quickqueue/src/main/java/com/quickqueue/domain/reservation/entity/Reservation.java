@@ -1,6 +1,7 @@
 package com.quickqueue.domain.reservation.entity;
 
 import com.quickqueue.domain.event.entity.Event;
+import com.quickqueue.domain.reservation.dto.ReservationRequest;
 import com.quickqueue.global.common.BaseCreatedTimeEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -30,10 +31,13 @@ public class Reservation extends BaseCreatedTimeEntity {
     @Column(nullable = false)
     private String representativeName;
 
+    @Column(nullable = false)
     private String phoneNumber;
 
+    @Column(nullable = false)
     private Integer peopleCount;
 
+    @Column(nullable = false)
     private Integer waitingNumber;
 
     @Enumerated(EnumType.STRING)
@@ -45,11 +49,16 @@ public class Reservation extends BaseCreatedTimeEntity {
 
     private LocalDateTime completedAt;
 
-    public static Reservation create() {
-        return Reservation.builder().
-                // TODO
-
-                build();
+    public static Reservation create(Event event, String reservationToken,
+                                     ReservationRequest request, Integer waitingNumber) {
+        return Reservation.builder()
+                .event(event)
+                .reservationToken(reservationToken)
+                .representativeName(request.representativeName())
+                .phoneNumber(request.phoneNumber())
+                .peopleCount(request.peopleCount())
+                .waitingNumber(waitingNumber)
+                .build();
     }
 
     public void call() {
@@ -59,12 +68,11 @@ public class Reservation extends BaseCreatedTimeEntity {
 
     public void complete() {
         this.status = ReservationStatus.COMPLETED;
-        this.calledAt = LocalDateTime.now();
+        this.completedAt = LocalDateTime.now();
     }
 
     public void cancel() {
         this.status = ReservationStatus.CANCELED;
-        this.calledAt = LocalDateTime.now();
     }
 
 }

@@ -49,7 +49,8 @@ public class SecurityConfig {
                                 "/oauth2/**",
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
-                                "/api/events/**"
+                                "/api/events/**",
+                                "/api/reservations/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

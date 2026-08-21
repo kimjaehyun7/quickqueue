@@ -3,6 +3,8 @@ package com.quickqueue.domain.reservation.service;
 import com.quickqueue.domain.event.entity.Event;
 import com.quickqueue.domain.event.entity.EventStatus;
 import com.quickqueue.domain.event.repository.EventRepository;
+import com.quickqueue.domain.member.entity.Member;
+import com.quickqueue.domain.member.repository.MemberRepository;
 import com.quickqueue.domain.reservation.dto.ReservationRequest;
 import com.quickqueue.domain.reservation.dto.ReservationResponse;
 import com.quickqueue.domain.reservation.dto.ReservationStatusResponse;
@@ -13,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.file.AccessDeniedException;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -22,6 +26,7 @@ public class ReservationService {
 
     private final EventRepository eventRepository;
     private final ReservationRepository reservationRepository;
+    private final MemberRepository memberRepository;
 
     public ReservationResponse createReservation(String publicId, ReservationRequest request) {
 
@@ -37,12 +42,7 @@ public class ReservationService {
         }
 
         // 현재 대기자 수 조회
-        int waitingNumber =
-                (int) reservationRepository
-                        .countByEventIdAndStatus(
-                                event.getId(),
-                                ReservationStatus.WAITING
-                        ) + 1;
+        int waitingNumber = event.issueWaitingNumber();
 
         // 예약 코드 생성
         String reservationToken = makeReservationToken();
@@ -87,6 +87,114 @@ public class ReservationService {
                 reservation.getStatus(),
                 waitingAhead
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> getReservations(Long memberId, String publicId) {
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        // event 조회
+        Event event = eventRepository.findByPublicId(publicId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        // 관리자 체크
+        if (!event.isOwner(member)) {
+            throw new RuntimeException("권한이 없습니다.");
+            // TODO
+        }
+
+        return reservationRepository
+                .findByEventIdOrderByWaitingNumberAsc(event.getId())
+                .stream()
+                .map(r -> new ReservationResponse(
+                        r.getId(),
+                        r.getRepresentativeName(),
+                        r.getPeopleCount(),
+                        r.getWaitingNumber(),
+                        r.getReservationToken(),
+                        r.getStatus()
+                )).toList();
+    }
+
+    public void callReservation(Long memberId, String publicId, String reservationToken) {
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        Event event = eventRepository.findByPublicId(publicId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        // 관리자 체크
+        if (!event.isOwner(member)) {
+            throw new RuntimeException("권한이 없습니다.");
+            // TODO
+        }
+
+        Reservation reservation = reservationRepository.findByReservationToken(reservationToken)
+                .orElseThrow(
+                        // TODO
+                );
+
+        // 해당 예약이 이 이벤트의 예약인지 체크
+        if (!reservation.getEvent().getId().equals(event.getId())) {
+            throw new RuntimeException("해당 이벤트의 예약이 아닙니다.");
+            // TODO
+        }
+
+        if (reservation.getStatus() != ReservationStatus.WAITING) {
+            throw new RuntimeException("대기 중인 예약만 호출할 수 있습니다.");
+        }
+
+        // 호출
+        reservation.call();
+        // TODO : 예약 대표자에게 문자 / 카카오톡 발송
+    }
+
+    public void completeReservation(Long memberId, String publicId, String reservationToken) {
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        Event event = eventRepository.findByPublicId(publicId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        // 관리자 체크
+        if (!event.isOwner(member)) {
+            throw new RuntimeException("권한이 없습니다.");
+            // TODO
+        }
+
+        Reservation reservation = reservationRepository.findByReservationToken(reservationToken)
+                .orElseThrow(
+                        // TODO
+                );
+
+        // 해당 예약이 이 이벤트의 예약인지 체크
+        if (!reservation.getEvent().getId().equals(event.getId())) {
+            throw new RuntimeException("해당 이벤트의 예약이 아닙니다.");
+            // TODO
+        }
+
+        if (reservation.getStatus() != ReservationStatus.WAITING) {
+            throw new RuntimeException("대기 중인 예약만 호출할 수 있습니다.");
+        }
+
+        // 완료
+        reservation.complete();
     }
 
     private String makeReservationToken() {

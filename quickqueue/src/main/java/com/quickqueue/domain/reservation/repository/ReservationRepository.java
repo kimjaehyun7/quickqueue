@@ -14,6 +14,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     List<Reservation> findByEventIdAndStatusOrderByWaitingNumberAsc(Long eventId,
                                                                     ReservationStatus status);
 
+    List<Reservation> findByEventIdOrderByWaitingNumberAsc(Long eventId);
+
     // 특정 사용자 앞에 대기자 수 반환
     long countByEventIdAndStatus(Long eventId, ReservationStatus status);
 

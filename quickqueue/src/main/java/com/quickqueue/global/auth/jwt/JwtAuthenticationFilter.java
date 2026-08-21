@@ -65,6 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
         } catch (Exception e) {
+            e.printStackTrace();
             // 잘못된 JWT 는 인증 정보를 설정하지 않음
             SecurityContextHolder.clearContext();
         }

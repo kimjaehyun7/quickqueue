@@ -36,6 +36,10 @@ public class Event extends BaseCreatedTimeEntity {
     @Builder.Default
     private EventStatus status = EventStatus.OPEN;
 
+    // 다음에 발급할 대기번호
+    @Builder.Default
+    private int nextWaitingNumber = 1;
+
     private LocalDateTime closedAt;
 
     public static Event create(Member member, EventRequest request, String publicId) {
@@ -49,5 +53,14 @@ public class Event extends BaseCreatedTimeEntity {
     public void close() {
         this.status = EventStatus.CLOSED;
         closedAt = LocalDateTime.now();
+    }
+
+    public boolean isOwner(Member member) {
+        return this.member.getId().equals(member.getId());
+    }
+
+    // 대기번호 발급 후 1증가
+    public int issueWaitingNumber() {
+        return nextWaitingNumber++;
     }
 }

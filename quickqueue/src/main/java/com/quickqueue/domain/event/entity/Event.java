@@ -55,8 +55,8 @@ public class Event extends BaseCreatedTimeEntity {
         closedAt = LocalDateTime.now();
     }
 
-    public boolean isOwner(Member member) {
-        return this.member.getId().equals(member.getId());
+    public boolean isOwner(Long memberId) {
+        return this.member.getId().equals(memberId);
     }
 
     // 대기번호 발급 후 1증가

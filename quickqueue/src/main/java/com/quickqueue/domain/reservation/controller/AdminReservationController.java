@@ -49,4 +49,17 @@ public class AdminReservationController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{reservationToken}/cancel")
+    public ResponseEntity<Void> cancelReservation(@PathVariable String publicId,
+                                                  @PathVariable String reservationToken,
+                                                  @AuthenticationPrincipal CustomUserDetails userDetails) {
+
+        Long memberId = userDetails.getId();
+
+        reservationService.cancelReservation(memberId, publicId, reservationToken);
+
+
+        return ResponseEntity.noContent().build();
+    }
 }

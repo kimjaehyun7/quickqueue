@@ -31,7 +31,7 @@ public class ReservationService {
     public ReservationResponse createReservation(String publicId, ReservationRequest request) {
 
         // event 조회
-        Event event = eventRepository.findByPublicId(publicId)
+        Event event = eventRepository.findByPublicIdUseLock(publicId)
                 .orElseThrow(
                         // TODO
                 );
@@ -92,11 +92,6 @@ public class ReservationService {
     @Transactional(readOnly = true)
     public List<ReservationResponse> getReservations(Long memberId, String publicId) {
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(
-                        // TODO
-                );
-
         // event 조회
         Event event = eventRepository.findByPublicId(publicId)
                 .orElseThrow(
@@ -104,7 +99,7 @@ public class ReservationService {
                 );
 
         // 관리자 체크
-        if (!event.isOwner(member)) {
+        if (!event.isOwner(memberId)) {
             throw new RuntimeException("권한이 없습니다.");
             // TODO
         }
@@ -124,18 +119,13 @@ public class ReservationService {
 
     public void callReservation(Long memberId, String publicId, String reservationToken) {
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(
-                        // TODO
-                );
-
         Event event = eventRepository.findByPublicId(publicId)
                 .orElseThrow(
                         // TODO
                 );
 
         // 관리자 체크
-        if (!event.isOwner(member)) {
+        if (!event.isOwner(memberId)) {
             throw new RuntimeException("권한이 없습니다.");
             // TODO
         }
@@ -162,18 +152,13 @@ public class ReservationService {
 
     public void completeReservation(Long memberId, String publicId, String reservationToken) {
 
-        Member member = memberRepository.findById(memberId)
-                .orElseThrow(
-                        // TODO
-                );
-
         Event event = eventRepository.findByPublicId(publicId)
                 .orElseThrow(
                         // TODO
                 );
 
         // 관리자 체크
-        if (!event.isOwner(member)) {
+        if (!event.isOwner(memberId)) {
             throw new RuntimeException("권한이 없습니다.");
             // TODO
         }
@@ -195,6 +180,32 @@ public class ReservationService {
 
         // 완료
         reservation.complete();
+    }
+
+    public void cancelReservation(Long memberId, String publicId, String reservationToken) {
+        Event event = eventRepository.findByPublicId(publicId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        // 관리자 체크
+        if (!event.isOwner(memberId)) {
+            throw new RuntimeException("권한이 없습니다.");
+            // TODO
+        }
+
+        Reservation reservation = reservationRepository.findByReservationToken(reservationToken)
+                .orElseThrow(
+                        // TODO
+                );
+
+        // 해당 예약이 이 이벤트의 예약인지 체크
+        if (!reservation.getEvent().getId().equals(event.getId())) {
+            throw new RuntimeException("해당 이벤트의 예약이 아닙니다.");
+            // TODO
+        }
+
+        reservation.cancel();
     }
 
     private String makeReservationToken() {

@@ -7,6 +7,7 @@ import com.quickqueue.domain.event.repository.EventRepository;
 import com.quickqueue.domain.member.entity.Member;
 import com.quickqueue.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class EventService {
 
     private final EventRepository eventRepository;
@@ -39,6 +41,21 @@ public class EventService {
                 event.getPublicId(),
                 event.getStatus()
         );
+    }
+
+    public void closeEvent(String publicId, Long memberId) {
+        Event event = eventRepository.findByPublicId(publicId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        if (!event.isOwner(memberId)) {
+            log.error("권한이 없습니다. eventMemberId={}, requestMemberId={}", event.getMember().getId(), memberId);
+            throw new RuntimeException("해당 이벤트에 접근할 권한이 없습니다.");
+            // TODO
+        }
+
+        event.close();
     }
 
     private String makePublicId() {

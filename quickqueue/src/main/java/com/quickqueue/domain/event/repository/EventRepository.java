@@ -19,6 +19,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             from Event e
             where e.publicId = :publicId
             """)
+    Optional<Event> findByPublicIdUseLock(@Param("publicId") String publicId);
+
     Optional<Event> findByPublicId(@Param("publicId") String publicId);
 
 }

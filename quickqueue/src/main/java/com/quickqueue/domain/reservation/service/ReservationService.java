@@ -27,6 +27,7 @@ public class ReservationService {
     private final EventRepository eventRepository;
     private final ReservationRepository reservationRepository;
     private final MemberRepository memberRepository;
+    private final SseEmitters sseEmitters;
 
     public ReservationResponse createReservation(String publicId, ReservationRequest request) {
 
@@ -74,13 +75,7 @@ public class ReservationService {
                         // TODO
                 );
 
-        long waitingAhead = reservationRepository.findByEventIdAndStatusOrderByWaitingNumberAsc(
-                        reservation.getEvent().getId(),
-                        ReservationStatus.WAITING
-                )
-                .stream()
-                .filter(r -> r.getWaitingNumber() < reservation.getWaitingNumber())
-                .count();
+        long waitingAhead = getWaitingAhead(reservation);
 
         return new ReservationStatusResponse(
                 reservation.getWaitingNumber(),
@@ -147,7 +142,12 @@ public class ReservationService {
 
         // 호출
         reservation.call();
-        // TODO : 예약 대표자에게 문자 / 카카오톡 발송
+
+        ReservationStatusResponse response = new ReservationStatusResponse(reservation.getWaitingNumber(),
+                reservation.getStatus(), 0);
+
+        sseEmitters.send(reservationToken, "called", response);
+        // TODO : 예약 대표자에게 문자 발송
     }
 
     public void completeReservation(Long memberId, String publicId, String reservationToken) {
@@ -174,12 +174,17 @@ public class ReservationService {
             // TODO
         }
 
-        if (reservation.getStatus() != ReservationStatus.WAITING) {
-            throw new RuntimeException("대기 중인 예약만 호출할 수 있습니다.");
+        if (reservation.getStatus() != ReservationStatus.CALLED) {
+            throw new RuntimeException("호출된 예약만 완료할 수 있습니다.");
         }
 
         // 완료
         reservation.complete();
+
+        // 대기열 업데이트 sse 전송
+        queueUpdate(event.getId());
+
+        sseEmitters.complete(reservationToken);
     }
 
     public void cancelReservation(Long memberId, String publicId, String reservationToken) {
@@ -206,6 +211,17 @@ public class ReservationService {
         }
 
         reservation.cancel();
+
+        // 대기열 업데이트 sse 전송
+        queueUpdate(event.getId());
+
+        ReservationStatusResponse response = new ReservationStatusResponse(reservation.getWaitingNumber(),
+                reservation.getStatus(), 0);
+
+        sseEmitters.send(reservationToken, "canceled", response);
+
+        // 취소 sse 전송 후 연결 종료
+        sseEmitters.complete(reservationToken);
     }
 
     private String makeReservationToken() {
@@ -215,5 +231,37 @@ public class ReservationService {
                 .substring(0, 12);
     }
 
+    // 대기자 수 반환
+    private long getWaitingAhead(Reservation reservation) {
+        return reservationRepository.findByEventIdAndStatusOrderByWaitingNumberAsc(
+                        reservation.getEvent().getId(),
+                        ReservationStatus.WAITING
+                )
+                .stream()
+                .filter(r -> r.getWaitingNumber() < reservation.getWaitingNumber())
+                .count();
+    }
 
+    // 대기열 업데이트
+    // 반복문을 통해서 카운트 쿼리를 대기자수 만큼이 아닌 1번만 동작하게 최적화.
+    private void queueUpdate(Long eventId) {
+
+        List<Reservation> reservations = reservationRepository
+                .findByEventIdAndStatusOrderByWaitingNumberAsc(
+                        eventId, ReservationStatus.WAITING
+                );
+
+        for (int i = 0; i < reservations.size(); i++) {
+
+            Reservation r = reservations.get(i);
+
+            ReservationStatusResponse response = new ReservationStatusResponse(
+                    r.getWaitingNumber(),
+                    r.getStatus(),
+                    i
+            );
+
+            sseEmitters.send(r.getReservationToken(), "waiting", response);
+        }
+    }
 }

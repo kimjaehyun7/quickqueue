@@ -28,6 +28,7 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final MemberRepository memberRepository;
     private final SseEmitters sseEmitters;
+    private final NotificationService notificationService;
 
     public ReservationResponse createReservation(String publicId, ReservationRequest request) {
 
@@ -57,6 +58,17 @@ public class ReservationService {
         );
 
         reservationRepository.save(reservation);
+
+        String reservationUrl =
+                "http://localhost:8080/api/reservations/"
+                        + reservationToken;
+
+        notificationService.sendReservationCompleted(
+                request.phoneNumber(),
+                waitingNumber,
+                getWaitingAhead(reservation),
+                reservationUrl
+        );
 
         return new ReservationResponse(
                 reservation.getId(),
@@ -148,6 +160,8 @@ public class ReservationService {
 
         sseEmitters.send(reservationToken, "called", response);
         // TODO : 예약 대표자에게 문자 발송
+
+        notificationService.sendCalled(reservation.getPhoneNumber());
     }
 
     public void completeReservation(Long memberId, String publicId, String reservationToken) {

@@ -63,10 +63,12 @@ public class ReservationService {
                 "http://localhost:8080/api/reservations/"
                         + reservationToken;
 
+        long waitingAhead = getWaitingAhead(reservation);
+
         notificationService.sendReservationCompleted(
                 request.phoneNumber(),
                 waitingNumber,
-                getWaitingAhead(reservation),
+                waitingAhead,
                 reservationUrl
         );
 
@@ -75,6 +77,7 @@ public class ReservationService {
                 reservation.getRepresentativeName(),
                 reservation.getPeopleCount(),
                 reservation.getWaitingNumber(),
+                waitingAhead,
                 reservation.getReservationToken(),
                 reservation.getStatus()
         );
@@ -119,6 +122,7 @@ public class ReservationService {
                         r.getRepresentativeName(),
                         r.getPeopleCount(),
                         r.getWaitingNumber(),
+                        getWaitingAhead(r),
                         r.getReservationToken(),
                         r.getStatus()
                 )).toList();

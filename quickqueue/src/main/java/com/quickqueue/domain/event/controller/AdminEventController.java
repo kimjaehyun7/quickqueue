@@ -25,6 +25,14 @@ public class AdminEventController {
         return ResponseEntity.ok(eventService.createEvent(memberId, request));
     }
 
+    @GetMapping("/{publicId}")
+    public ResponseEntity<EventResponse> getEvent(@PathVariable String publicId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails.getId();
+
+        return ResponseEntity.ok(eventService.getEvent(memberId, publicId));
+    }
+
     @PostMapping("/{publicId}/close")
     public ResponseEntity<Void> closeEvent(@PathVariable String publicId,
                                            @AuthenticationPrincipal CustomUserDetails userDetails) {

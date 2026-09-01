@@ -43,6 +43,27 @@ public class EventService {
         );
     }
 
+    public EventResponse getEvent(Long memberId, String publicId) {
+
+        Event event = eventRepository.findByPublicId(publicId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        if (!event.isOwner(memberId)) {
+            log.error("권한이 없습니다. eventMemberId={}, requestMemberId={}", event.getMember().getId(), memberId);
+            throw new RuntimeException("해당 이벤트에 접근할 권한이 없습니다.");
+            // TODO
+        }
+
+        return new EventResponse(
+                event.getId(),
+                event.getName(),
+                event.getPublicId(),
+                event.getStatus()
+        );
+    }
+
     public void closeEvent(String publicId, Long memberId) {
         Event event = eventRepository.findByPublicId(publicId)
                 .orElseThrow(

@@ -7,6 +7,7 @@ public record ReservationResponse(
         String representativeName,
         int peopleCount,
         int waitingNumber,
+        long waitingAhead,
         String reservationToken,
         ReservationStatus status
 ) {

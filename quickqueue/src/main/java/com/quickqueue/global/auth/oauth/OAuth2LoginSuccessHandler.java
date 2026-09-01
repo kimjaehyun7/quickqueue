@@ -15,6 +15,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -63,10 +64,16 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         response.addHeader(HttpHeaders.SET_COOKIE,
                 refreshTokenCookie.toString());
 
-        // access Token 만 전달
-        response.setContentType("application/json;charset=UTF-8");
+        // 리다이렉트 url 생성
+        String targetUrl = UriComponentsBuilder.fromUriString(
+                        "http://localhost:5173"
+                )
+                .queryParam("accessToken", tokenPair.accessToken())
+                .build()
+                .toUriString();
 
-        Map<String, String> responseBody = Map.of("accessToken", tokenPair.accessToken());
-        response.getWriter().write(objectMapper.writeValueAsString(responseBody));
+        // 리다이렉트
+        clearAuthenticationAttributes(request); // 세션에 저장된 인증 관련 에러/속성
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }

@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/admin/events")
@@ -23,6 +25,13 @@ public class AdminEventController {
         Long memberId = userDetails.getId();
 
         return ResponseEntity.ok(eventService.createEvent(memberId, request));
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getEvents(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails.getId();
+
+        return ResponseEntity.ok(eventService.getEvents(memberId));
     }
 
     @GetMapping("/{publicId}")

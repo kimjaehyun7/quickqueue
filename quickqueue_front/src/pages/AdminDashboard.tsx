@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { adminGetReservations, adminCall, adminComplete, adminCancel, adminCloseEvent, adminGetEvent } from '../api/client'
+import { adminGetReservations, adminCall, adminComplete, adminCancel, adminCloseEvent, adminGetEvent, adminConnectSSE } from '../api/client'
 
 type ReservationItem = {
   reservationToken: string
@@ -15,6 +15,8 @@ export default function AdminDashboard() {
   const [list, setList] = useState<ReservationItem[]>([])
   const [eventStatus, setEventStatus] = useState('')
   const isClosed = /closed|end|ended|CLOSED/i.test(eventStatus || '')
+  const sseRef = useRef<{ close: () => void } | null>(null)
+  const refreshIntervalRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (!publicId) return
@@ -35,16 +37,67 @@ export default function AdminDashboard() {
     })()
   }, [publicId])
 
+  useEffect(() => {
+    if (!publicId) return
+
+    const handleSse = (evt: { type: string; data: string }) => {
+      console.log('[AdminDashboard] received SSE event', {
+        type: evt.type,
+        rawData: evt.data
+      })
+
+      if (evt.type === 'connected' || evt.type === 'list') {
+        console.log('[AdminDashboard] connected/list event received, reloading reservations via API')
+
+        adminGetReservations(publicId)
+          .then((data) => {
+            console.log('[AdminDashboard] SSE reloaded reservations', data)
+            setList(data || [])
+          })
+          .catch((err) => {
+            console.error('[AdminDashboard] SSE reload reservations failed', err)
+          })
+
+        adminGetEvent(publicId)
+          .then((ev) => {
+            setEventStatus(ev?.status || ev?.state || '')
+          })
+          .catch((err) => {
+            console.error('[AdminDashboard] SSE reload event status failed', err)
+          })
+      }
+    }
+
+    const sse = adminConnectSSE(publicId, handleSse)
+    sseRef.current = sse
+
+    refresh().catch(() => {})
+
+    return () => {
+      try { sseRef.current?.close() } catch {}
+      if (refreshIntervalRef.current !== null) {
+        window.clearInterval(refreshIntervalRef.current)
+        refreshIntervalRef.current = null
+      }
+    }
+  }, [publicId])
+
   const refresh = async () => {
     if (!publicId) return
     try {
       const data = await adminGetReservations(publicId)
+      console.log('[AdminDashboard] refresh reservations result', data)
       setList(data || [])
-    } catch (err) {}
+    } catch (err) {
+      console.error('[AdminDashboard] refresh reservations failed', err)
+    }
     try {
       const ev = await adminGetEvent(publicId)
+      console.log('[AdminDashboard] refresh event result', ev)
       setEventStatus(ev?.status || ev?.state || '')
-    } catch (err) {}
+    } catch (err) {
+      console.error('[AdminDashboard] refresh event failed', err)
+    }
   }
 
   const doCall = async (token: string) => { if (!publicId) return; await adminCall(publicId, token); refresh() }

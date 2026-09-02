@@ -2,30 +2,87 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { getReservation, connectSSE } from '../api/client'
 
-function attachSseHandlers(es: EventSource, onPayload: (payload: any) => void) {
-  const onMessage = (e: MessageEvent) => {
-    try { onPayload(JSON.parse(e.data)) } catch (err) { console.error(err) }
+function normalizeReservationPayload(payload: any, currentToken?: string) {
+  if (Array.isArray(payload)) {
+    const matched = payload.find((item: any) => item?.reservationToken === currentToken)
+    if (matched) {
+      return matched
+    }
+
+    const index = payload.findIndex((item: any) => item?.reservationToken === currentToken)
+    if (index >= 0) {
+      const item = payload[index]
+      return {
+        waitingNumber: item?.waitingNumber,
+        waitingAhead: index,
+        peopleCount: item?.peopleCount,
+        status: item?.status,
+        reservationToken: item?.reservationToken
+      }
+    }
+
+    return {}
   }
-  const onWaiting = (e: MessageEvent) => { try { onPayload(JSON.parse(e.data)) } catch (err) {} }
-  const onCalled = (e: MessageEvent) => { try { onPayload(JSON.parse(e.data)) } catch (err) {} }
-  const onQueue = (e: MessageEvent) => { try { onPayload(JSON.parse(e.data)) } catch (err) {} }
-  const onCanceled = (e: MessageEvent) => { try { onPayload(JSON.parse(e.data)) } catch (err) {} }
-  const onCompleted = (e: MessageEvent) => { try { onPayload(JSON.parse(e.data)) } catch (err) {} }
 
-  es.addEventListener('message', onMessage as any)
-  es.addEventListener('waiting', onWaiting as any)
-  es.addEventListener('called', onCalled as any)
-  es.addEventListener('queue-updated', onQueue as any)
-  es.addEventListener('canceled', onCanceled as any)
-  es.addEventListener('completed', onCompleted as any)
+  if (payload && typeof payload === 'object') {
+    if (payload.reservationToken === currentToken || payload.token === currentToken) {
+      return payload
+    }
 
-  return () => {
-    es.removeEventListener('message', onMessage as any)
-    es.removeEventListener('waiting', onWaiting as any)
-    es.removeEventListener('called', onCalled as any)
-    es.removeEventListener('queue-updated', onQueue as any)
-    es.removeEventListener('canceled', onCanceled as any)
-    es.removeEventListener('completed', onCompleted as any)
+    if (Array.isArray(payload.reservations)) {
+      const queueItem = payload.reservations.find((item: any) => item?.reservationToken === currentToken)
+      if (queueItem) {
+        return {
+          waitingNumber: queueItem.waitingNumber,
+          waitingAhead: payload.reservations.findIndex((item: any) => item?.reservationToken === currentToken),
+          peopleCount: queueItem.peopleCount,
+          status: queueItem.status,
+          reservationToken: queueItem.reservationToken
+        }
+      }
+    }
+  }
+
+  return payload ?? {}
+}
+
+function attachSseHandlers(token: string, onPayload: (payload: any) => void) {
+  const handle = (eventType: string, raw: string) => {
+    console.log('[ReservationStatus] SSE event', { eventType, raw })
+    try {
+      const payload = raw === 'null' || raw === 'undefined' ? null : JSON.parse(raw)
+
+      if (eventType === 'called' || eventType === 'waiting' || eventType === 'canceled' || eventType === 'completed') {
+        onPayload(normalizeReservationPayload(payload, token))
+        return
+      }
+
+      if (eventType === 'queue') {
+        if (Array.isArray(payload)) {
+          const current = payload.find((item: any) => item?.reservationToken === token)
+          if (current) {
+            onPayload({
+              waitingNumber: current.waitingNumber,
+              waitingAhead: payload.findIndex((item: any) => item?.reservationToken === token),
+              peopleCount: current.peopleCount,
+              status: current.status,
+              reservationToken: current.reservationToken
+            })
+            return
+          }
+        }
+      }
+
+      if (payload && typeof payload === 'object') {
+        onPayload(normalizeReservationPayload(payload, token))
+      }
+    } catch (err) {
+      console.error('[ReservationStatus] SSE parse error', err)
+    }
+  }
+
+  return (evt: { type: string; data: string }) => {
+    handle(evt.type, evt.data)
   }
 }
 
@@ -36,41 +93,38 @@ type Reservation = {
   status?: string
 }
 
+function getStatusMessage(status?: string) {
+  switch ((status || '').toUpperCase()) {
+    case 'WAITING':
+      return '조금만 기다려주세요.'
+    case 'CALLED':
+      return '입장해주세요.'
+    case 'COMPLETED':
+      return '예약이 완료되었습니다.'
+    case 'CANCELED':
+      return '예약이 취소되었습니다.'
+    default:
+      return '예약 정보를 확인 중입니다.'
+  }
+}
+
 export default function ReservationStatus() {
   const { token } = useParams()
   const [resv, setResv] = useState<Reservation>({})
-  const eventSourceRef = useRef<EventSource | null>(null)
+  const sseRef = useRef<{ close: () => void } | null>(null)
 
   useEffect(() => {
     if (!token) return
     getReservation(token)
       .then(data => setResv({ waitingNumber: data.waitingNumber, waitingAhead: data.waitingAhead, peopleCount: data.peopleCount, status: data.status }))
       .catch(() => {})
-    let es: EventSource | null = null
-    let cleanup: (() => void) | null = null
-    let backoff = 1000
-    let stopped = false
 
-    const connect = () => {
-      es = connectSSE(token)
-      eventSourceRef.current = es
-      cleanup = attachSseHandlers(es, (payload) => setResv(prev => ({ ...prev, ...payload })))
-      es.onerror = () => {
-        if (stopped) return
-        try { es?.close() } catch {};
-        setTimeout(() => {
-          backoff = Math.min(16000, backoff * 2)
-          connect()
-        }, backoff)
-      }
-    }
-
-    connect()
+    const handleSse = attachSseHandlers(token, (payload) => setResv(prev => ({ ...prev, ...payload })))
+    const sse = connectSSE(token, handleSse)
+    sseRef.current = sse
 
     return () => {
-      stopped = true
-      try { cleanup && cleanup() } catch {}
-      try { eventSourceRef.current?.close() } catch {}
+      try { sseRef.current?.close() } catch {}
     }
   }, [token])
 
@@ -79,9 +133,8 @@ export default function ReservationStatus() {
       <h1>예약 현황</h1>
       <div className="status-box">
         <div className="big">대기번호 {resv.waitingNumber ?? '-'}</div>
-        <div className="highlight">내 앞: {resv.waitingAhead ?? '-' }명</div>
-        <div>인원수: {resv.peopleCount ?? '-'}</div>
-        <div>상태: {resv.status ?? '-'}</div>
+        <div className="highlight">내 앞: {resv.waitingAhead ?? '-'}팀</div>
+        <div className="muted-note">{getStatusMessage(resv.status)}</div>
       </div>
     </div>
   )

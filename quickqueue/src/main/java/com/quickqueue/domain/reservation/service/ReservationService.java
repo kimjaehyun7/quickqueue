@@ -8,10 +8,14 @@ import com.quickqueue.domain.member.repository.MemberRepository;
 import com.quickqueue.domain.reservation.dto.ReservationRequest;
 import com.quickqueue.domain.reservation.dto.ReservationResponse;
 import com.quickqueue.domain.reservation.dto.ReservationStatusResponse;
+import com.quickqueue.domain.reservation.dto.event.ReservationEvent;
+import com.quickqueue.domain.reservation.dto.event.ReservationListUpdateEvent;
+import com.quickqueue.domain.reservation.dto.event.ReservationQueueUpdateEvent;
 import com.quickqueue.domain.reservation.entity.Reservation;
 import com.quickqueue.domain.reservation.entity.ReservationStatus;
 import com.quickqueue.domain.reservation.repository.ReservationRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +33,7 @@ public class ReservationService {
     private final MemberRepository memberRepository;
     private final SseEmitters sseEmitters;
     private final NotificationService notificationService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ReservationResponse createReservation(String publicId, ReservationRequest request) {
 
@@ -71,6 +76,11 @@ public class ReservationService {
                 waitingAhead,
                 reservationUrl
         );
+
+        // 관리자에게 수정된 리스트 sse 전송
+        eventPublisher.publishEvent(new ReservationListUpdateEvent(
+                event.getMember().getId(),publicId
+        ));
 
         return new ReservationResponse(
                 reservation.getId(),
@@ -162,8 +172,18 @@ public class ReservationService {
         ReservationStatusResponse response = new ReservationStatusResponse(reservation.getWaitingNumber(),
                 reservation.getStatus(), 0);
 
-        sseEmitters.send(reservationToken, "called", response);
-        // TODO : 예약 대표자에게 문자 발송
+        List<ReservationResponse> reservations = getReservations(memberId, publicId);
+
+        // 해당 사용자에게 sse 전송
+        eventPublisher.publishEvent(new ReservationEvent(
+                reservationToken, "called", response
+        ));
+        // sseEmitters.send(reservationToken, "called", response);
+        // 관리자에게 수정된 리스트 sse 전송
+        eventPublisher.publishEvent(new ReservationListUpdateEvent(
+                memberId,publicId
+        ));
+        // sseEmitters.send(publicId, "list", reservations);
 
         notificationService.sendCalled(reservation.getPhoneNumber());
     }
@@ -200,9 +220,20 @@ public class ReservationService {
         reservation.complete();
 
         // 대기열 업데이트 sse 전송
-        queueUpdate(event.getId());
+        eventPublisher.publishEvent(new ReservationQueueUpdateEvent(
+                event.getId()
+        ));
+        // queueUpdate(event.getId());
 
-        sseEmitters.complete(reservationToken);
+        // 관리자에게 수정된 리스트 sse 전송
+        eventPublisher.publishEvent(new ReservationListUpdateEvent(
+                memberId,publicId
+        ));
+
+        eventPublisher.publishEvent(new ReservationEvent(
+                reservationToken, "completed", null
+        ));
+        //sseEmitters.complete(reservationToken);
     }
 
     public void cancelReservation(Long memberId, String publicId, String reservationToken) {
@@ -231,15 +262,26 @@ public class ReservationService {
         reservation.cancel();
 
         // 대기열 업데이트 sse 전송
-        queueUpdate(event.getId());
+        eventPublisher.publishEvent(new ReservationQueueUpdateEvent(
+                event.getId()
+        ));
+        // queueUpdate(event.getId());
+
+        // 관리자에게 수정된 리스트 sse 전송
+        eventPublisher.publishEvent(new ReservationListUpdateEvent(
+                memberId,publicId
+        ));
 
         ReservationStatusResponse response = new ReservationStatusResponse(reservation.getWaitingNumber(),
                 reservation.getStatus(), 0);
 
-        sseEmitters.send(reservationToken, "canceled", response);
-
         // 취소 sse 전송 후 연결 종료
-        sseEmitters.complete(reservationToken);
+        eventPublisher.publishEvent(new ReservationEvent(
+                reservationToken, "canceled", response
+        ));
+
+        // sseEmitters.send(reservationToken, "canceled", response);
+        // sseEmitters.complete(reservationToken);
     }
 
     private String makeReservationToken() {

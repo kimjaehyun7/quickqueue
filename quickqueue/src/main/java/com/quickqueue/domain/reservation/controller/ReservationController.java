@@ -5,11 +5,15 @@ import com.quickqueue.domain.reservation.dto.ReservationResponse;
 import com.quickqueue.domain.reservation.dto.ReservationStatusResponse;
 import com.quickqueue.domain.reservation.service.ReservationService;
 import com.quickqueue.domain.reservation.service.SseEmitters;
+import com.quickqueue.global.auth.user.CustomUserDetails;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -42,6 +46,20 @@ public class ReservationController {
             case CANCELED -> sseEmitters.send(reservationToken, "canceled", response);
             case COMPLETED -> sseEmitters.send(reservationToken, "completed", response);
         }
+
+        return emitter;
+    }
+
+    @GetMapping(value = "/{publicId}/admin/sse/connect", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter adminSseConnect(@PathVariable String publicId,
+                                      @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long memberId = userDetails.getId();
+
+        SseEmitter emitter = sseEmitters.subscribe(publicId);
+
+        List<ReservationResponse> reservations = reservationService.getReservations(memberId, publicId);
+
+        sseEmitters.send(publicId, "connected", reservations);
 
         return emitter;
     }

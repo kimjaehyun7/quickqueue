@@ -35,9 +35,11 @@ services:
         condition: service_healthy
     environment:
       DATASOURCE_URL: jdbc:mysql://mysql:3306/quickqueue_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
-      MYSQL_USER: quickqueue_user
+      MYSQL_USER: ${MYSQL_USER}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      SPRING_DATASORUCE_USERNAME: ${MYSQL_USER}
+      SPRING_DATASORUCE_PASSWORD: ${MYSQL_PASSWORD}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID}
       KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET}
       JWT_SECRET: ${JWT_SECRET}

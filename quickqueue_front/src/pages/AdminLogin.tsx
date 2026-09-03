@@ -26,7 +26,7 @@ export default function AdminLogin() {
 
   const handleKakao = () => {
     // Redirect to backend OAuth endpoint (use VITE_API_BASE_URL)
-    const backend = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:8080'
+    const backend = (import.meta.env.VITE_API_BASE_URL as string) || 'http://16.176.178.31:8080'
     const url = `${backend.replace(/\/$/, '')}/oauth2/authorization/kakao`
     window.location.href = url
   }

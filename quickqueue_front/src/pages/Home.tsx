@@ -4,7 +4,7 @@ import { adminCreateEvent } from '../api/client'
 import { useNavigate } from 'react-router-dom'
 
 export default function Home() {
-  const backend = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:8080'
+  const backend = (import.meta.env.VITE_API_BASE_URL as string) || 'http://16.176.178.31:8080'
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 

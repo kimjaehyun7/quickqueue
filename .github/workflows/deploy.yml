@@ -1,0 +1,70 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create .enc file on EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            mkdir -p ~/quickqueue
+            cd ~/quickqueue
+
+            cat > .env << EOF
+
+            EC2_HOST=${{ secrets.EC2_HOST }}
+            EC2_USER=${{ secrets.EC2_USER }}
+
+            MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }}
+            MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+            MYSQL_USER=${{ secrets.MYSQL_USER }}
+
+            KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
+            KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
+
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+
+            SOLAPI_API_KEY=${{ secrets.SOLAPI_API_KEY }}
+            SOLAPI_API_SECRET=${{ secrets.SOLAPI_API_SECRET }}
+            SOLAPI_SENDER=${{ secrets.SOLAPI_SENDER }}
+
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+
+            EOF
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/quickqueue
+            
+            docker compose down || true
+
+            if [ -d ".git" ]; then
+              git pull origin main
+            else
+              git init
+              git remote add origin https://github.com/kimjaehyun7/quickqueue.git
+              git pull origin main
+            fi
+
+            DOCKER_BUILDKIT=0 COMPOSE_DOCKER_CLI_BUILD=0 docker compose up --build -d
+
+            docker image prune -f
+          

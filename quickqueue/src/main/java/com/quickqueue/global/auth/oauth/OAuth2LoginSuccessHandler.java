@@ -66,7 +66,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         // 리다이렉트 url 생성
         String targetUrl = UriComponentsBuilder.fromUriString(
-                        "http://localhost:5173"
+                        "http://16.176.178.31:5173"
                 )
                 .queryParam("accessToken", tokenPair.accessToken())
                 .build()

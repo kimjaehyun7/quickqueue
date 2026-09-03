@@ -25,7 +25,7 @@ npm run dev
 
 Environment
 
- - Set `VITE_API_BASE_URL` to point to the backend (default: `http://localhost:8080`).
+ - Set `VITE_API_BASE_URL` to point to the backend (default: `http://16.176.178.31:8080`).
 
 Development
 
@@ -34,18 +34,18 @@ This frontend expects the Spring Boot backend described in `prompt.txt` to be ru
 Example (PowerShell):
 
 ```powershell
-$env:VITE_API_BASE_URL = 'http://localhost:8080'; npm run dev
+$env:VITE_API_BASE_URL = 'http://16.176.178.31:8080'; npm run dev
 ```
 
 Example (Unix/macOS):
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8080 npm run dev
+VITE_API_BASE_URL=http://16.176.178.31:8080 npm run dev
 ```
 
 Backend integration notes
 
- - Ensure the backend allows CORS requests from the frontend origin (http://localhost:5173) and exposes the SSE endpoint with `Content-Type: text/event-stream`.
+ - Ensure the backend allows CORS requests from the frontend origin (http://16.176.178.31:5173) and exposes the SSE endpoint with `Content-Type: text/event-stream`.
  - Admin OAuth: backend should handle OAuth with Kakao and either redirect to `/admin/callback?accessToken=...&publicId=...` for testing, or set HttpOnly cookies and redirect to `/admin/callback`.
  - This frontend sends credentials (cookies) with requests to support cookie-based admin sessions; configure the backend to accept requests with credentials from the frontend origin.
 

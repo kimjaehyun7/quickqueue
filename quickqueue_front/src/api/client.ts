@@ -1,8 +1,10 @@
+/// <reference types="vite/client" />
+
 import axios from 'axios'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { getAccessToken } from '../auth'
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || 'http://localhost:8080'
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || 'http://16.176.178.31:8080'
 
 export const api = axios.create({
   baseURL: API_BASE,

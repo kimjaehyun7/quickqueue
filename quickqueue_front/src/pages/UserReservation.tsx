@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { createReservation, adminGetEvent } from '../api/client'
 
 export default function UserReservation() {
   const [name, setName] = useState('')
   const [people, setPeople] = useState(1)
   const [phone, setPhone] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const params = useParams()
   const [publicId, setPublicId] = useState(params.publicId || 'demo')
   const [publicMode] = useState(!!params.publicId)
@@ -29,16 +30,18 @@ export default function UserReservation() {
     }
   }, [params.publicId])
   const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setSuccessMessage('')
     try {
       const body = { representativeName: name, peopleCount: people, phoneNumber: phone }
-      const res = await createReservation(publicId, body)
-      // assume response includes reservationToken
-      navigate(`/reservations/${res.reservationToken}`)
+      await createReservation(publicId, body)
+      setName('')
+      setPeople(1)
+      setPhone('')
+      setSuccessMessage('예약이 완료되었습니다. 문자로 전송된 링크에서 예약 현황을 확인해주세요.')
     } catch (err) {
       alert('예약에 실패했습니다.')
       console.error(err)
@@ -50,6 +53,7 @@ export default function UserReservation() {
   return (
     <div className="card centered">
       <h1>{eventName || '예약하기'}</h1>
+      {successMessage && <div className="success-note" role="status">{successMessage}</div>}
       <form onSubmit={submit} className="form">
         {!publicMode && (
           <>

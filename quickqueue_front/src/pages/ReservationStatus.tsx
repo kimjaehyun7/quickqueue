@@ -129,12 +129,13 @@ export default function ReservationStatus() {
   }, [token])
 
   return (
-    <div className="card centered">
+    <div className="card centered reservation-status-card">
       <h1>예약 현황</h1>
-      <div className="status-box">
-        <div className="big">대기번호 {resv.waitingNumber ?? '-'}</div>
+      <div className="status-box" aria-live="polite">
+        <div className="status-number-label">내 대기번호</div>
+        <div className="big">{resv.waitingNumber ?? '-'}</div>
         <div className="highlight">내 앞: {resv.waitingAhead ?? '-'}팀</div>
-        <div className="muted-note">{getStatusMessage(resv.status)}</div>
+        <div className="muted-note status-message">{getStatusMessage(resv.status)}</div>
       </div>
     </div>
   )

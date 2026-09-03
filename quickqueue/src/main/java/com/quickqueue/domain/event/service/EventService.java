@@ -65,6 +65,21 @@ public class EventService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public EventResponse getPublicEvent(String publicId) {
+        Event event = eventRepository.findByPublicId(publicId)
+                .orElseThrow(
+                        // TODO
+                );
+
+        return new EventResponse(
+                event.getId(),
+                event.getName(),
+                event.getPublicId(),
+                event.getStatus()
+        );
+    }
+
     public List<EventResponse> getEvents(Long memberId) {
         return eventRepository.findAllByMemberIdOrderByCreatedAtDesc(memberId).stream()
                 .map(e -> new EventResponse(

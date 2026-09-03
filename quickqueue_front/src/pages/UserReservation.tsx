@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { createReservation, adminGetEvent } from '../api/client'
+import { createReservation, getPublicEvent } from '../api/client'
 
 export default function UserReservation() {
   const [name, setName] = useState('')
@@ -20,7 +20,7 @@ export default function UserReservation() {
     if (params.publicId) {
       ;(async () => {
         try {
-          const ev = await adminGetEvent(params.publicId as string)
+          const ev = await getPublicEvent(params.publicId as string)
           setEventName(ev?.name || ev?.title || '')
           setEventStatus(ev?.status || ev?.state || '')
         } catch (err) {

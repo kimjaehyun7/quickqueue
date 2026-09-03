@@ -102,6 +102,7 @@ export const adminGetReservations = (publicId: string) =>
   api.get(`/api/admin/reservations/${publicId}`).then(r => r.data)
 export const adminGetEvents = () => api.get('/api/admin/events').then(r => r.data)
 export const adminGetEvent = (publicId: string) => api.get(`/api/admin/events/${publicId}`).then(r => r.data)
+export const getPublicEvent = (publicId: string) => api.get(`/api/events/${publicId}`).then(r => r.data)
 export const adminCloseEvent = (publicId: string) => api.post(`/api/admin/events/${publicId}/close`).then(r => r.data)
 export const adminCall = (publicId: string, reservationToken: string) =>
   api.post(`/api/admin/reservations/${publicId}/${reservationToken}/call`)

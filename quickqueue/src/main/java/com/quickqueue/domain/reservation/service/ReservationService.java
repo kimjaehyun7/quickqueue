@@ -65,7 +65,7 @@ public class ReservationService {
         reservationRepository.save(reservation);
 
         String reservationUrl =
-                "http://16.176.178.31:5173/api/reservations/"
+                "http://16.176.178.31:5173/reservations/"
                         + reservationToken;
 
         long waitingAhead = getWaitingAhead(reservation);

@@ -47,6 +47,7 @@ public class SecurityConfig {
                                 "/",
                                 "/login/**",
                                 "/oauth2/**",
+                                "/api/events/**",
                                 "/api/auth/reissue",
                                 "/api/auth/logout",
                                 "/api/reservations/**",

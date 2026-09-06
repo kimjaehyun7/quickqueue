@@ -45,14 +45,14 @@ export default function Home() {
         <h1>QuickQueue</h1>
         {!logged ? (
           <>
-            <p style={{ color: '#6b7280' }}>관리자라면 아래 버튼을 눌러 로그인하세요.</p>
+            <p className="muted-note">관리자라면 아래 버튼을 눌러 로그인하세요.</p>
             <button className="primary" style={{ padding: '18px 28px', fontSize: 18, width: '100%' }} onClick={handleKakao}>관리자 로그인</button>
-            <p style={{ marginTop: 8, color: '#9ca3af' }}>공용 예약 페이지는 이벤트가 생성된 후에 사용 가능합니다.</p>
+            <p className="muted-note" style={{ marginTop: 8 }}>공용 예약 페이지는 이벤트가 생성된 후에 사용 가능합니다.</p>
           </>
         ) : (
           <>
             <h2>환영합니다, 관리자님</h2>
-            <p style={{ color: '#6b7280' }}>새 이벤트를 생성하거나 대시보드로 이동하세요.</p>
+            <p className="muted-note">새 이벤트를 생성하거나 대시보드로 이동하세요.</p>
             <div style={{ display: 'flex', gap: 8, width: '100%' }}>
               <button className="primary" style={{ flex: 1 }} onClick={handleCreateEvent} disabled={loading}>{loading ? '생성 중...' : '이벤트 생성'}</button>
               <button style={{ flex: 1 }} onClick={() => navigate('/admin/dashboard')}>대시보드</button>
